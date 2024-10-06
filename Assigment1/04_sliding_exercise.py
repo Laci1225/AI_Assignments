@@ -115,8 +115,9 @@ def hill_climbing(
     """
     current = problem.start_state()
     parent = problem.nil
+
     while not problem.is_goal_state(current):
-        yield current #yielding each state
+        yield current  # yielding each state
         next_states = problem.next_states(current)
         # if with three branches
         if not next_states:
@@ -125,7 +126,7 @@ def hill_climbing(
             yield parent
         else:
             parent = current
-            current = min(next_states - {parent}, key=lambda x: f(x))
+            current = min(next_states - {parent}, key=f)
             yield current
     yield current
 
@@ -155,12 +156,12 @@ def tabu_search(
     tabu_set = deque(maxlen=tabu_len)
     tabu_set.append(current)
     too_long = 0
-    while not problem.is_goal_state(opt):
+    while not problem.is_goal_state(opt) and too_long < long_time:
         yield current
 
         next_states = problem.next_states(current)
-
         next_states = [remaining_state for remaining_state in next_states if remaining_state not in tabu_set]
+
         if not next_states:
             yield None
 
@@ -173,52 +174,45 @@ def tabu_search(
             too_long = 0
         else:
             too_long += 1
-        if too_long >= long_time:
-            yield None
+
     yield opt
 
 # heuristics
 
 
 def misplaced(state: State) -> int:
-    number_of_misplaced_tiles = 0
-    for i in range(9):
-        if state[i] != goal[i]:
-            number_of_misplaced_tiles += 1
-    return number_of_misplaced_tiles
+    return sum([1 for i in range(9) if state[i] != goal[i]])
 
 
 def manhattan(state: State) -> int:
     sum_of_distances = 0
     for i in range(9):
-        if state[i] == goal[i]:
-            sum_of_distances += 0
-        else:
-            current_row = i // 3
-            current_col = i % 3
-            goal_row = goal.index(state[i]) // 3
-            goal_col = goal.index(state[i]) % 3
-            sum_of_distances += abs(current_row - goal_row) + abs(current_col - goal_col)
+        current_row = i // 3
+        current_col = i % 3
+        goal_row = goal.index(state[i]) // 3
+        goal_col = goal.index(state[i]) % 3
+        sum_of_distances += abs(current_row - goal_row) + abs(current_col - goal_col)
     return sum_of_distances
 
 
 def frame(state: State) -> int:
     penalty_score = 0
     for i in range(9):
-        if i == 0 or i == 1 and state[i + 1] != goal[i + 1]:
+        if (i == 0 or i == 1) and state[i] == goal[i] and state[i + 1] != goal[i + 1]:
             penalty_score += 1
-        if i == 2 or i == 5 and state[i + 3] != goal[i + 3]:
+        if (i == 3 or i == 6) and state[i] == goal[i] and state[i - 3] != goal[i - 3]:
             penalty_score += 1
-        if i == 7 or i == 8 and state[i - 1] != goal[i - 1]:
+        if (i == 2 or i == 5) and state[i] == goal[i] and state[i + 3] != goal[i + 3]:
             penalty_score += 1
-        if i == 3 or i == 6 and state[i - 3] != goal[i - 3]:
+        if (i == 7 or i == 8) and state[i] == goal[i] and state[i - 1] != goal[i - 1]:
             penalty_score += 1
+
         if i in [0, 2, 6, 8] and state[i] != goal[i]:
             penalty_score += 2
     return penalty_score
 
-
 # END OF YOUR CODE
+
 
 start_permutations = 10
 
