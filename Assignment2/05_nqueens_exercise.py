@@ -179,19 +179,15 @@ def backtrack(
     """The BT1 algorithm implemented recursively with an inner funcion."""
     start_state = problem.start_state()
     path : list[State] = []
-    #resultt: list[State] = []
     def backtrack_recursive(current: State) -> Optional[list[State]]:
         """The inner function that implements BT1."""
         if problem.is_goal_state(current):
             return path
         for next_state in problem.next_states(current):
             path.append(next_state)
-            #result.append(next_state)
             result = backtrack_recursive(next_state)
             if result:
                 return path
-            #resultt.pop()
-
         return None
         # Idea: Pseudocode from lecture 4 (backtrack) on slide 7
         #       nil (on the slide) means an empty list
