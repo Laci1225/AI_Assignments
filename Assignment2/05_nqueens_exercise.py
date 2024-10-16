@@ -187,7 +187,7 @@ def backtrack(
             path.append(next_state)
             result = backtrack_recursive(next_state)
             if result:
-                return path
+                return [next_state] + result
         return None
         # Idea: Pseudocode from lecture 4 (backtrack) on slide 7
         #       nil (on the slide) means an empty list
