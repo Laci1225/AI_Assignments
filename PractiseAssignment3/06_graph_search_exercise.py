@@ -199,8 +199,7 @@ def graph_search(problem, f) -> tuple[list[Actions], list[State]]:
 
             OPEN.remove(n)
             for m in problem.next_states(n) - {pi[n]}:
-                if m not in G or (
-                        g[n] + 1) < g[m]:
+                if m not in G or (g[n] + 1) < g[m]:
                     pi[m] = n
                     g[m] = 1  # abs(n.position.row - m.position.row) - abs(n.position.col - n.position.col)
                     OPEN.add(m)
@@ -261,7 +260,7 @@ class EvaluationFunctionLF(EvaluationFunction):
         self.h = h
 
     def __call__(self, node):
-        return self.g[node]
+        return self.h(node)
 
 
 class EvaluationFunctionAStar(EvaluationFunction):
@@ -270,9 +269,10 @@ class EvaluationFunctionAStar(EvaluationFunction):
         self.h = h
 
     def __call__(self, node):
-        if self.h >= 0 and self.h <= self.h:
-            return self.g[node] + self.h[node]
-        return 0
+        print(self.g[node], self.h(node))
+        if self.h(node) >= 0:
+            return self.g[node] + self.h(node)
+        return self.g[node]
 
 
 # The GUI runs the search algorithms through these functions.
@@ -334,7 +334,7 @@ def manhattan(problem: CatToDoorProblem):
         target_positions = problem.target_positions(state)
         position = state.position
         return sum(
-            abs(abs(position.row - target_position.row) - abs(position.col - target_position.col))
+            abs((position.row - target_position.row) - (position.col - target_position.col))
             for target_position in target_positions
         )
 
