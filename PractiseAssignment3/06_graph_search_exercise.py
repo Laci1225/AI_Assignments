@@ -201,10 +201,10 @@ def graph_search(problem, f) -> tuple[list[Actions], list[State]]:
             for m in problem.next_states(n) - {pi[n]}:
                 if m not in G or (g[n] + 1) < g[m]:
                     pi[m] = n
-                    g[m] = 1  # abs(n.position.row - m.position.row) - abs(n.position.col - n.position.col)
+                    g[m] = g[n] + 1  # abs(n.position.row - m.position.row) - abs(n.position.col - n.position.col)
                     OPEN.add(m)
                     expanded_nodes.append(m)
-                    G.add(m)
+            G.update(problem.next_states(n))
             # Idea: Pseudocode from lecture 5 (graphsearch) on slide 10
             #       Make sure to be familiar with sets in Python! (- operator, add)
             #       Add a node to the list of expanded_nodes once a node gets
@@ -269,10 +269,7 @@ class EvaluationFunctionAStar(EvaluationFunction):
         self.h = h
 
     def __call__(self, node):
-        print(self.g[node], self.h(node))
-        if self.h(node) >= 0:
-            return self.g[node] + self.h(node)
-        return self.g[node]
+        return self.g[node] + self.h(node)
 
 
 # The GUI runs the search algorithms through these functions.
@@ -334,7 +331,7 @@ def manhattan(problem: CatToDoorProblem):
         target_positions = problem.target_positions(state)
         position = state.position
         return sum(
-            abs((position.row - target_position.row) - (position.col - target_position.col))
+            abs(position.row - target_position.row) + abs(position.col - target_position.col)
             for target_position in target_positions
         )
 
@@ -366,15 +363,14 @@ class EatDonutsProblem(SearchProblem):
     def target_positions(self, state: EatDonutsState):
         """Return the positions of the donuts if there are any left,
         otherwise return the positions of the doors"""
-        return state.donuts
-        #if state.donuts:
-        #    return state.donuts
-        #return state.position
+        if state.donuts:
+            return state.donuts
+        return self.door_positions
         # Idea: If there are donuts left, then those are the targets.
         #       Otherwise, it's the door(s)
 
     def is_goal_state(self, state: EatDonutsState) -> bool:
-        return state.position in self.door_positions # and state.donuts == ((),)
+        return state.position in self.door_positions and not state.donuts
         # Idea: If all the donuts are eaten, and we're at the door
 
     def next_states(self, state: EatDonutsState) -> set[EatDonutsState]:
