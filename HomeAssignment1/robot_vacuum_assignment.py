@@ -10,12 +10,12 @@ import PySimpleGUI as sg
 from framework.gui import BoardGUI
 
 
-Actions = Enum("Actions", "N W S E")
+Actions = Enum("Actions", "N S W E")
 Directions = {
     Actions.N: Position(1, 0),
-    Actions.E: Position(0, -1),
     Actions.S: Position(-1, 0),
     Actions.W: Position(0, 1),
+    Actions.E: Position(0, -1),
 }
 
 
