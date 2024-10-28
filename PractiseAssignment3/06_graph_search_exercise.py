@@ -375,7 +375,6 @@ class EatDonutsProblem(SearchProblem):
 
     def next_states(self, state: EatDonutsState) -> set[EatDonutsState]:
         ns = set()
-        remaining_donuts = tuple([donut for donut in state.donuts if donut != state.position])
 
         for action in Actions:
             new_position = state.position + Directions[action]
@@ -384,6 +383,7 @@ class EatDonutsProblem(SearchProblem):
                     and 0 <= new_position.col < self.n
                     and not self.walls[new_position.row][new_position.col]
             ):
+                remaining_donuts = tuple([donut for donut in state.donuts if donut != new_position])
                 ns.add(EatDonutsState(new_position, remaining_donuts))
         return ns
         # Idea: Very similar to next_states in CatToDoorProblem, but
