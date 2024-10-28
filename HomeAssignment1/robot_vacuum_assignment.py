@@ -110,19 +110,9 @@ class LabyrinthGUI(BoardGUI):
             pos = state.position
             field_type = self.board.board[pos.row][pos.col]
             label, (text_color, bg_color), image = labyrinth_draw_dict[field_type]
-
-            if image:
-                self.board_layout[pos.row][pos.col].Update(
-                    "",
-                    button_color=(text_color, bg_color),
-                    image_filename=image,
-                    image_size=self.CELL_SIZE,
-                    image_subsample=1,
-                )
-            else:
-                self.board_layout[pos.row][pos.col].Update(
-                    label, button_color=(text_color, bg_color)
-                )
+            self.board_layout[pos.row][pos.col].Update(
+                label, button_color=(text_color, "red")
+            )
 class LabyrinthSearchProblem(ABC):
     def __init__(self):
         self.board = board
@@ -142,31 +132,46 @@ class LabyrinthSearchProblem(ABC):
     def is_goal_state(self, state: State) -> bool:
         return state.position == self.goal
 
-    def next_states(self, state: State) -> set[State]:
-        next_positions = set()
+    def next_states(self, state: State) -> Generator[LabyrinthBoard, None, None]:
         for action, direction in Directions.items():
-            next_pos = state.position + direction
-            if 0 <= next_pos.row < self.board.m and 0 <= next_pos.col < self.board.n:
-                cell_type = self.board.board[next_pos.row][next_pos.col]
-                if cell_type not in {LabyrinthFields.Wall, LabyrinthFields.Empty}:
-                    next_positions.add(State(next_pos))
-        return next_positions
+            new_position = state.position + direction
+            if self.is_valid_position(new_position):
+                next_row = new_position.row + direction.row
+                next_col = new_position.col + direction.col
+                if self.is_valid_position(Position(next_row, next_col)):
+                    yield State(Position(next_row, next_col))
+
+    def is_valid_position(self, new_position):
+        return (0 <= new_position.row < self.board.m
+                and 0 <= new_position.col < self.board.n
+                and self.board.board[new_position.row][new_position.col] != LabyrinthFields.Wall)
+
+    def _to_drawable(self, state: LabyrinthBoard) -> LabyrinthBoard:
+        return state
+
 
 def backtrack(
     problem: LabyrinthSearchProblem, step_by_step: bool = False
 ) -> Optional[Generator[State, None, None]]:
     start_state = problem.start_state()
-    path: list[State] = []
+    path: list[State] = [start_state]
+    visited = set()
+    backtrack_count = 0
+
     def backtrack_recursive(current: State) -> Optional[list[State]]:
+        nonlocal backtrack_count
         if problem.is_goal_state(current):
             return path
+        visited.add(current.position)
         for next_state in problem.next_states(current):
+            if next_state.position in visited:
+                continue
             path.append(next_state)
             result = backtrack_recursive(next_state)
             if result:
                 return [next_state] + result
+            backtrack_count += 1
         return None
-
     result = backtrack_recursive(start_state)
     if result:
         return (r for r in path) if step_by_step else (r for r in result)
@@ -223,29 +228,6 @@ def create_window(board_gui):
                     [sg.Button("Change", key="change_algorithm")],
                 ],
             ),
-            sg.Frame(
-                "Problem settings",
-                [
-                    [
-                        sg.T("Labyrinth: "),
-                        sg.Combo(
-                            LABYRINTH_TXT,
-                            key="labyrinth",
-                            readonly=True,
-                            default_value=LABYRINTH_TXT)
-                    ],
-                    [
-                        sg.T("Board size: ", size=(12, 1)),
-                        sg.Combo(
-                            ["9x9"],
-                            key="board_size",
-                            readonly=True,
-                            default_value="9x9"
-                        ),
-                    ],
-                    [sg.Button("Change", key="change_problem")],
-                ],
-            ),
         ],
         [sg.T("Steps: "), sg.T("0", key="steps", size=(7, 1), justification="right")],
         [sg.Button("Restart"), sg.Button("Step"), sg.Button("Go!"), sg.Button("Exit")],
@@ -277,27 +259,29 @@ while True:  # Event Loop
         break
     window.Element("Go!").Update(text="Stop!" if go else "Go!")
     if event == "change_algorithm" or starting:
+        problem = LabyrinthSearchProblem()
         algorithm: Any = algorithms[values["algorithm"]]
         board_gui.board = board
-        #path = algorithm(algorithm[0])
+        path = algorithm(problem)
         steps = 0
         starting = False
         stepping = True
     if event == "Restart":
+        algorithm: Any = algorithms[values["algorithm"]]
         board_gui.board = board
-        #path = algorithm()
+        path = algorithm(problem)
         steps = 0
         stepping = True
-    if (event == "Step" or go or stepping): # and path:
+    if (event == "Step" or go or stepping and path):
         try:
-            #state = next(path)
+            state = next(path)
             steps += 1
             window.Element("steps").Update(f"{steps}")
         except StopIteration:
             pass
-        board = board# queens_problem._to_drawable(state)
-        board_gui.board = board
         board_gui.update()
+        board_gui.update_nodes([state])
+
         stepping = False
     if event == "Go!":
         go = not go
