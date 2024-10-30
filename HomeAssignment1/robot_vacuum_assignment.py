@@ -3,7 +3,7 @@ from abc import ABC
 from dataclasses import dataclass
 from enum import Enum
 from functools import partial
-from typing import Any, Generator, Optional
+from typing import Any, Generator, Optional, Iterable
 from framework.board import Position, Board
 import PySimpleGUI as sg
 
@@ -12,10 +12,10 @@ from framework.gui import BoardGUI
 
 Actions = Enum("Actions", "N S W E")
 Directions = {
-    Actions.N: Position(1, 0),
-    Actions.S: Position(-1, 0),
-    Actions.W: Position(0, 1),
-    Actions.E: Position(0, -1),
+    Actions.N: Position(-1, 0),
+    Actions.S: Position(1, 0),
+    Actions.W: Position(0, -1),
+    Actions.E: Position(0, 1),
 }
 
 
@@ -100,13 +100,14 @@ class LabyrinthGUI(BoardGUI):
         else:
             return self.CELL_SIZE
 
-    def update_nodes(self, expanded_node: State) -> None:
-        pos = expanded_node.position
-        field_type = self.board.board[pos.row][pos.col]
-        label, (text_color, bg_color), image = labyrinth_draw_dict[field_type]
-        self.board_layout[pos.row][pos.col].Update(
-            label, button_color=(text_color, "red")
-        )
+    def update_nodes(self, expanded_nodes: Iterable[State]) -> None:
+        for state in expanded_nodes:
+            pos = state.position
+            field_type = self.board.board[pos.row][pos.col]
+            label, (text_color, bg_color), image = labyrinth_draw_dict[field_type]
+            self.board_layout[pos.row][pos.col].Update(
+                label, button_color=(text_color, "red")
+            )
 
 
 class LabyrinthSearchProblem(ABC):
@@ -132,10 +133,9 @@ class LabyrinthSearchProblem(ABC):
         for action, direction in Directions.items():
             new_position = state.position + direction
             if self.is_valid_position(new_position):
-                next_row = new_position.row + direction.row
-                next_col = new_position.col + direction.col
-                if self.is_valid_position(Position(next_row, next_col)):
-                    yield State(Position(next_row, next_col))
+                new_new_position = new_position + direction
+                if self.is_valid_position(new_new_position):
+                    yield State(new_new_position)
 
     def is_valid_position(self, new_position):
         return (0 <= new_position.row < self.board.m
@@ -244,6 +244,7 @@ algorithms = {
     "Backtrack - step by step": partial(backtrack, step_by_step=True),
     "Backtrack - just the solution": backtrack,
 }
+states = []
 
 while True:
     event, values = window.Read(0)
@@ -251,6 +252,7 @@ while True:
         break
     window.Element("Go!").Update(text="Stop!" if go else "Go!")
     if event == "change_algorithm" or starting:
+        states = []
         problem = LabyrinthSearchProblem()
         algorithm: Any = algorithms[values["algorithm"]]
         board_gui.board = board
@@ -259,6 +261,7 @@ while True:
         starting = False
         stepping = True
     if event == "Restart":
+        states = []
         problem = LabyrinthSearchProblem()
         algorithm: Any = algorithms[values["algorithm"]]
         board_gui.board = board
@@ -271,7 +274,8 @@ while True:
             steps += 1
             window.Element("steps").Update(f"{steps}")
             board_gui.update()
-            board_gui.update_nodes(state)
+            states.append(state)
+            board_gui.update_nodes(states)
         except StopIteration:
             pass
         stepping = False
