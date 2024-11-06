@@ -133,17 +133,21 @@ def minimax(board: GomokuBoard) -> None:
         return minimize(board, player)
 
     def minimize(board: GomokuBoard, player: int) -> MiniMaxReturnType:
-        if board.winner() == 2:
-            return -1, [board]
-        if board.winner() == 1:
-            return 1, [board]
         if board.winner() == 0:
-            return 0, [board]
-        boards = board.next_boards(player)
-        for next_board in boards:
-            valuee, result = value(next_board, switch_player(player))
-            if result:
-                return valuee, [next_board] + result
+            return 0, None
+        if board.winner() == 1:
+            return -1, None
+        if board.winner() == 2:
+            return 1, None
+
+        min_value = 1
+        solution = []
+        for next_board in board.next_boards(player):
+            valuee, _ = value(next_board, switch_player(player))
+            if valuee < min_value:
+                min_value = valuee
+                solution.append(next_board)
+        return min_value, solution
         # Idea: Check MiniMaxReturnType as a hint for what to return!
         #       Is the game over? Do we have a winner? Is it a draw?
         #       If it is over, the minimax value should be a positive or
@@ -152,17 +156,21 @@ def minimax(board: GomokuBoard) -> None:
         #       Finally, return both the min value and the corresponding solution
 
     def maximize(board: GomokuBoard, player: int) -> MiniMaxReturnType:
-        if board.winner() == 2:
-            return 1, [board]
-        if board.winner() == 1:
-            return -1, [board]
         if board.winner() == 0:
-            return 0, [board]
-        boards = board.next_boards(player)
-        for next_board in boards:
-            valuee, result = value(next_board, switch_player(player))
-            if result:
-                return valuee, [next_board] + result
+            return 0, None
+        if board.winner() == 1:
+            return -1, None
+        if board.winner() == 2:
+            return 1, None
+
+        max_value = -1
+        solution = []
+        for next_board in board.next_boards(player):
+            valuee, _ = value(next_board, switch_player(player))
+            if valuee > max_value:
+                max_value = valuee
+                solution.append(next_board)
+        return max_value, solution
 
     _, solution = value(board, 2)
     if solution is not None:
