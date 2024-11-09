@@ -54,14 +54,14 @@ class GomokuBoard:
         # check the diagonals (use self.board.diagonal())
         # upper left to lower right
         diagonals = (self.board.diagonal(i) for i in range(
-            NEEDED_TO_WIN-self.board.shape[0], self.board.shape[0] - NEEDED_TO_WIN + 1))
+            NEEDED_TO_WIN - self.board.shape[0], self.board.shape[0] - NEEDED_TO_WIN + 1))
         for player, length in ((key, len(list(group))) for diag in diagonals
                                for key, group in groupby(diag) if key != 0):
             if length >= NEEDED_TO_WIN:
                 return player
         # lower left to upper right
         diagonals = (np.flipud(self.board).diagonal(i) for i in range(
-            NEEDED_TO_WIN-self.board.shape[0], self.board.shape[0] - NEEDED_TO_WIN + 1))
+            NEEDED_TO_WIN - self.board.shape[0], self.board.shape[0] - NEEDED_TO_WIN + 1))
         for player, length in ((key, len(list(group))) for diag in diagonals
                                for key, group in groupby(diag) if key != 0):
             if length >= NEEDED_TO_WIN:
@@ -115,18 +115,21 @@ def random_move(board: GomokuBoard) -> None:
     zero_ind = np.where(board.board == 0)
     index = np.random.randint(len(zero_ind[0]))
     row, col = zero_ind[0][index], zero_ind[1][index]
-    board[row,col] = 2
+    board[row, col] = 2
+
 
 # YOUR CODE HERE
 
 MiniMaxReturnType = tuple[Optional[int], Optional[list[GomokuBoard]]]
+
+
 # A tuple of an integer (or None) and a list if boards (or None)
 # The list of boards contains the solution and
 #   the integer describes the evaluation value of that solution
 
-#TODO: implement the minimax algorithm
 def minimax(board: GomokuBoard) -> None:
     """Do the next step computed by the minimax algorithm."""
+
     def value(board: GomokuBoard, player: int) -> MiniMaxReturnType:
         if player == 2:
             return maximize(board, player)
@@ -179,7 +182,56 @@ def minimax(board: GomokuBoard) -> None:
 
 def alpha_beta(board: GomokuBoard) -> None:
     """Do the next step computed by the alpha-beta search."""
-    pass #TODO
+
+    def value(board: GomokuBoard, player: int, alpha, beta) -> MiniMaxReturnType:
+        if player == 2:
+            return maximize(board, player, alpha, beta)
+        return minimize(board, player, alpha, beta)
+
+    def minimize(board: GomokuBoard, player: int, alpha=-1, beta=1) -> MiniMaxReturnType:
+        if board.winner() == 0 :
+            return 0, None
+        if board.winner() == 1:
+            return -1, None
+        if board.winner() == 2:
+            return 1, None
+
+        min_value = 1
+        solution = []
+        for next_board in board.next_boards(player):
+            valuee, _ = value(next_board, switch_player(player), alpha, beta)
+            if valuee < min_value:
+                min_value = valuee
+                solution.append(next_board)
+            beta = min(beta, min_value)
+            if beta <= alpha:
+                break
+
+        return min_value, solution
+
+    def maximize(board: GomokuBoard, player: int, alpha=-1, beta=1) -> MiniMaxReturnType:
+        if board.winner() == 0:
+            return 0, None
+        if board.winner() == 1:
+            return -1, None
+        if board.winner() == 2:
+            return 1, None
+
+        max_value = -1
+        solution = []
+        for next_board in board.next_boards(player):
+            valuee, _ = value(next_board, switch_player(player), alpha, beta)
+            if valuee > max_value:
+                max_value = valuee
+                solution.append(next_board)
+            alpha = max(alpha, max_value)
+            if beta <= alpha:
+                break
+        return max_value, solution
+
+    _, solution = value(board, 2, -1, 1)
+    if solution is not None:
+        board.board = solution[0].board
     # Idea: Implement the alpha-beta pruning in the minimax algorithm
     #       You can start by just copying your minimax algorithm here
     #       Introduce alpha and beta as function parameters in each
@@ -234,7 +286,7 @@ GOMOKU_DRAW_DICT = {
 
 BOARD = GomokuBoard(BOARD_SIZE)
 GAME_LOGIC = GameLogic(BOARD, random_move)
-BOARD_GUI = BoardGUI(BOARD, GOMOKU_DRAW_DICT) #type:ignore
+BOARD_GUI = BoardGUI(BOARD, GOMOKU_DRAW_DICT)  # type:ignore
 
 
 def create_window(board_gui):
@@ -251,13 +303,13 @@ def create_window(board_gui):
               [
                   sg.Button('Restart'),
                   sg.Button('Exit')
-            ]]
+              ]]
 
     window = sg.Window('Gomoku',
                        layout,
                        default_button_element_size=(10, 1),
                        auto_size_buttons=False,
-                       location=(0,0))
+                       location=(0, 0))
     return window
 
 
@@ -284,6 +336,5 @@ while True:  # Event Loop
             else:
                 sg.Popup("It's a draw!")
             GAME_LOGIC.reset()
-
 
 window.Close()
